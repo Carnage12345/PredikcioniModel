@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Car Price Prediction</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: url('{{ url_for('static', filename='test.jpg') }}') no-repeat center center fixed;
+            background: url('static/test.jpg') no-repeat center center fixed;
             background-size: cover;
             display: flex;
             justify-content: center;
@@ -91,14 +90,15 @@
     </style>
 </head>
 <body>
+    <!-- Forma za unos podataka -->
     <div class="container" id="form-container">
-        <h1>Predict Your Car Price</h1>
+        <h1>Predikcija cijene automobila</h1>
         <form id="car-form">
             <label for="make">Marka:</label>
             <select id="make" name="make" required>
                 <option value="" disabled selected>Odaberite marku</option>
                 {% for make in makes %}
-                <option value="{{ make }}">{{ make }}</option>
+                    <option value="{{ make }}">{{ make }}</option>
                 {% endfor %}
             </select>
 
@@ -108,30 +108,37 @@
             </select>
 
             <label for="year">Godina:</label>
-            <input type="number" id="year" name="year" placeholder="npr., 2020" required>
+            <input type="number" id="year" name="year" placeholder="npr., 2020" min="1900" max="2024" required>
 
             <label for="mileage">Kilometraža (u km):</label>
-            <input type="number" id="mileage" name="mileage" placeholder="npr., 15000" required>
+            <input type="number" id="mileage" name="mileage" placeholder="npr., 15000" min="0" required>
 
             <label for="fuel">Gorivo:</label>
             <select id="fuel" name="fuel" required>
                 <option value="" disabled selected>Odaberite gorivo</option>
                 {% for fuel in fuels %}
-                <option value="{{ fuel }}">{{ fuel }}</option>
+                    <option value="{{ fuel }}">{{ fuel }}</option>
                 {% endfor %}
             </select>
 
-            <input type="submit" value="Predvidi cenu">
+            <input type="submit" value="Predvidi cijenu">
         </form>
     </div>
 
+    <!-- Rezultati predikcije -->
     <div class="result-container" id="result-container" style="display: none;">
-        <h2>Cena Vašeg automobila je:</h2>
+        <h2>Cijena vašeg automobila je:</h2>
         <p id="price-result"></p>
-        <button onclick="resetForm()">Ponovno predviđanje</button>
+        <h3>Slični automobili:</h3>
+        <ul id="similar-cars" style="list-style: none; padding: 0;">
+            <li id="lower-price-option"></li>
+            <li id="higher-price-option"></li>
+        </ul>
+        <button onclick="resetForm()">Ponovo predviđanje</button>
     </div>
 
     <script>
+        // Dynamically load models based on selected make
         document.getElementById('make').addEventListener('change', function() {
             let make = this.value;
             fetch(`/get_models/${make}`)
@@ -148,6 +155,7 @@
                 });
         });
 
+        // Handle form submission
         document.getElementById('car-form').addEventListener('submit', function(e) {
             e.preventDefault();
 
@@ -168,18 +176,19 @@
             })
             .then(response => response.json())
             .then(result => {
-                if (result.prediction) {
-                    document.getElementById('price-result').textContent = result.prediction;
-                    document.getElementById('form-container').style.display = 'none';
-                    document.getElementById('result-container').style.display = 'block';
-                }
+                document.getElementById('form-container').style.display = 'none';
+                document.getElementById('result-container').style.display = 'block';
+                document.getElementById('price-result').textContent = result.prediction;
+                document.getElementById('lower-price-option').textContent = result.options.lower_option;
+                document.getElementById('higher-price-option').textContent = result.options.higher_option;
             });
         });
 
+        // Reset form and result view
         function resetForm() {
-            document.getElementById('car-form').reset();
             document.getElementById('form-container').style.display = 'block';
             document.getElementById('result-container').style.display = 'none';
+            document.getElementById('car-form').reset();
         }
     </script>
 </body>
