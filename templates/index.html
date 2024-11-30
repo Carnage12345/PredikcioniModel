@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Price Prediction</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: url('static/test.jpg') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container, .result-container {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            max-width: 550px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #343a40;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-top: 12px;
+            font-size: 16px;
+            color: #495057;
+        }
+        input[type="text"], input[type="number"], select {
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            border: 1px solid #ced4da;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        input[type="submit"] {
+            background-color: #28a745;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s;
+        }
+        input[type="submit"]:hover {
+            background-color: #218838;
+        }
+        .result-container {
+            text-align: center;
+        }
+        .result-container h2 {
+            font-size: 26px;
+            color: #343a40;
+            margin-bottom: 20px;
+        }
+        .result-container p {
+            font-size: 22px;
+            color: #495057;
+            margin-bottom: 40px;
+        }
+        .result-container button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background-color 0.3s;
+        }
+        .result-container button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <!-- Forma za unos podataka -->
+    <div class="container" id="form-container">
+        <h1>Predikcija cijene automobila</h1>
+        <form id="car-form">
+            <label for="make">Marka:</label>
+            <select id="make" name="make" required>
+                <option value="" disabled selected>Odaberite marku</option>
+                {% for make in makes %}
+                    <option value="{{ make }}">{{ make }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="model">Model:</label>
+            <select id="model" name="model" required>
+                <option value="" disabled selected>Odaberite model</option>
+            </select>
+
+            <label for="year">Godina:</label>
+            <input type="number" id="year" name="year" placeholder="npr., 2020" min="1900" max="2024" required>
+
+            <label for="mileage">Kilometraža (u km):</label>
+            <input type="number" id="mileage" name="mileage" placeholder="npr., 15000" min="0" required>
+
+            <label for="fuel">Gorivo:</label>
+            <select id="fuel" name="fuel" required>
+                <option value="" disabled selected>Odaberite gorivo</option>
+                {% for fuel in fuels %}
+                    <option value="{{ fuel }}">{{ fuel }}</option>
+                {% endfor %}
+            </select>
+
+            <input type="submit" value="Predvidi cijenu">
+        </form>
+    </div>
+
+    <!-- Rezultati predikcije -->
+    <div class="result-container" id="result-container" style="display: none;">
+        <h2>Cijena vašeg automobila je:</h2>
+        <p id="price-result"></p>
+        <h3>Slični automobili:</h3>
+        <ul id="similar-cars" style="list-style: none; padding: 0;">
+            <li id="lower-price-option"></li>
+            <li id="higher-price-option"></li>
+        </ul>
+        <button onclick="resetForm()">Ponovo predviđanje</button>
+    </div>
+
+    <script>
+        // Dynamically load models based on selected make
+        document.getElementById('make').addEventListener('change', function() {
+            let make = this.value;
+            fetch(`/get_models/${make}`)
+                .then(response => response.json())
+                .then(models => {
+                    let modelSelect = document.getElementById('model');
+                    modelSelect.innerHTML = '<option value="" disabled selected>Odaberite model</option>';
+                    models.forEach(model => {
+                        let option = document.createElement('option');
+                        option.value = model;
+                        option.textContent = model;
+                        modelSelect.appendChild(option);
+                    });
+                });
+        });
+
+        // Handle form submission
+        document.getElementById('car-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            let make = document.getElementById('make').value;
+            let model = document.getElementById('model').value;
+            let year = document.getElementById('year').value;
+            let mileage = document.getElementById('mileage').value;
+            let fuel = document.getElementById('fuel').value;
+
+            let data = { make, model, year, mileage, fuel };
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                document.getElementById('form-container').style.display = 'none';
+                document.getElementById('result-container').style.display = 'block';
+                document.getElementById('price-result').textContent = result.prediction;
+                document.getElementById('lower-price-option').textContent = result.options.lower_option;
+                document.getElementById('higher-price-option').textContent = result.options.higher_option;
+            });
+        });
+
+        // Reset form and result view
+        function resetForm() {
+            document.getElementById('form-container').style.display = 'block';
+            document.getElementById('result-container').style.display = 'none';
+            document.getElementById('car-form').reset();
+        }
+    </script>
+</body>
+</html>
