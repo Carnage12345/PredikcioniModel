@@ -5,13 +5,13 @@ import joblib
 
 app = Flask(__name__)
 
-# Učitaj dataset
+
 df = pd.read_csv('enriched_cars.csv')
 
-# Učitaj trenirani model
-model = joblib.load('car_price_model.pkl')  # Trenirani pipeline model
 
-# Dobavi jedinstvene vrijednosti za marke i goriva
+model = joblib.load('car_price_model.pkl')  
+
+
 unique_makes = df['Make'].dropna().unique().tolist()
 valid_fuels = df['Fuel'].dropna().unique().tolist()
 
@@ -26,7 +26,7 @@ def get_models(make):
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Dobavi podatke iz zahtjeva
+    
     data = request.get_json()
     make = data['make']
     model_input = data['model']
@@ -34,7 +34,7 @@ def predict():
     mileage = int(data['mileage'])
     fuel = data['fuel']
 
-    # Priprema ulaznih podataka za pipeline model
+    
     input_data = pd.DataFrame({
         'Make': [make],
         'Model': [model_input],
@@ -43,10 +43,10 @@ def predict():
         'Fuel': [fuel]
     })
 
-    # Predikcija cijene koristeći pipeline
+    
     predicted_price = model.predict(input_data)[0]
 
-    # Pronalaženje sličnih automobila u dataset-u
+   
     similar_cars = df[
         (df['Make'] == make) &
         (df['Model'] == model_input) &
@@ -54,7 +54,7 @@ def predict():
         (np.abs(df['Year'] - year) <= 2)
     ]
 
-    # Izračunaj minimalnu, maksimalnu i prosječnu cijenu
+    
     lower_price = similar_cars['min_price'].min() if not similar_cars.empty else None
     higher_price = similar_cars['max_price'].max() if not similar_cars.empty else None
 
